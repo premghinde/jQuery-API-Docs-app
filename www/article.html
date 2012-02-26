@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<title>xml test</title>
+
+<style>
+#cats,
+#type,
+#contents {
+	border-bottom: 5px solid #ccc;
+	height: 100%;
+	overflow: hidden;
+}
+
+#contents h2 {
+	border-bottom: 1px solid #000;
+	margin-bottom: 8px;
+}
+
+#contents .entry {
+	border: 1px solid green;
+}
+</style>
+</head>
+
+<body>
+
+<div id="contents"></div>
+<div id="cats"></div>
+<div id="type"></div>
+<div> test </div>
+
+
+<!--script src="j/j.js"></script-->
+<script src="phonegap-1.3.0.js"></script>
+<script src="jqmobi/jq.mobi.js"></script>
+<script>
+$(function(){
+	"use strict";
+	$.ajax({
+		url: 'x/x.xml',
+		dataType: 'xml',
+		success: function(x){
+
+//unique categories for menu
+			var t = '', 
+				c = [],
+				d = {},
+				i, j;
+
+			x = parseXml(x);
+
+			$(x).find('entry').each(function(){
+				$(this).find('category').each(function(){
+					c.push($(this).attr('name'));
+				});
+			});
+			
+			c = unique(c).sort();
+
+			for (i = 0, j = c.length; i<j; i++) {
+				if (!c[i].match(/Version/)) {
+					t += '<p style="clear:both">' + c[i] + '</p>';
+					t += getDocsList({
+							attribute : 'name',
+							subtag : 'category',
+							section : c[i],
+							complete : x
+						});
+				}
+
+			}
+			$('#cats').html(t);
+
+// list of types
+			t = '';
+			c = [];
+			
+			$(x).find('entry').each(function(){
+				c.push($(this).attr('type'));
+			});
+			
+			c = unique(c).sort();
+
+			for (i = 0, j = c.length; i<j; i++) {
+				if (!c[i].match(/Version/)) {
+					t += '<p style="clear:both">' + c[i] + '</p>';
+					t += getDocsList({
+							attribute : 'type',
+							subtag : null,
+							section : c[i],
+							complete : x
+						});
+				}
+
+			}
+			$('#type').html(t);
+			
+// get contents of a particular section
+			t = '';
+			//for (var i = 0, j = $(x).find('entry').length; i < j ; i++ ){ to check all entries
+			d = $(x).find('entry[name="event.delegateTarget"]')[0];
+			//console.log($(x).find('entry')[1]);
+
+			t += '<h2>'+ $(d).attr('name') + '</h2>';
+			t += '<h3><strong>Description:</strong> '+ $(d).find('desc').text() + '</h3>';
+			$(d).find('longdesc').each(function(){
+				t += '<div>'+ getKids($(this)[0]) + '</div>';
+			});
+			$(d).find('example').each(function(){
+				t += '<div><h4>Example:</h4>'+ getKids($(this)[0]) + '</div>';
+			});
+			//}
+			
+			$('#contents').html(t);
+		}
+	});
+	
+	function parseXml(xmlStr) {
+        return ( new window.DOMParser() ).parseFromString(xmlStr, "text/xml");
+    }
+	
+	function getKids (o) {
+
+		var kidlist = o.childNodes,
+			st = '',
+			i, j, th;
+
+		if (kidlist !== undefined && kidlist.length > 0) {
+			
+			for (i=0, j = kidlist.length; i < j ; i++ ) {
+
+				var opentag = '',
+					closetag = '';
+				
+				if (kidlist[i].tagName !== undefined) {
+					opentag = '<'+kidlist[i].tagName+'>';
+					closetag = '</'+kidlist[i].tagName+'>';
+				}
+				st +=  opentag + getKids(kidlist[i]) + closetag;
+
+			}
+		} else {
+			console.log('tx',o.textContent);
+			st += o.textContent;
+		}
+		
+		return st;
+
+    }
+	
+	function getDocsList (o) {
+		var f = false,
+			a = [],
+			t = '';
+			
+		t += '<ul>';
+		
+		$(o.complete).find('entry').each(function(){
+			f = false;
+			var ent = $(this).attr('name');
+			if (o.subtag === null) {
+				if ($(this).attr(o.attribute) === o.section) {
+					a.push(ent);
+				}
+			} else {
+				$(this).find(o.subtag).each(function(){
+					if ($(this).attr(o.attribute) === o.section) {
+						a.push(ent);
+					}
+				});
+			}
+		});
+		
+		a = unique(a).sort();
+		
+		for (var x = 0, y = a.length; x<y; x++) {
+			t += '<li style="float:left;width:25%;">' + a[x] + '</li>';
+		}
+		
+		t += '</ul>';
+		
+		return t;
+    }
+	
+	function unique (origArr) {  
+		var newArr = [],  
+			origLen = origArr.length,  
+			found,  
+			x, y;  
+		
+		for ( x = 0; x < origLen; x++ ) {  
+			found = undefined;  
+			for ( y = 0; y < newArr.length; y++ ) {  
+				if ( origArr[x] === newArr[y] ) {  
+					found = true;  
+					break;  
+				}  
+			}  
+			if (!found) {
+				newArr.push( origArr[x] );  
+			}
+		}  
+		return newArr;  
+	}
+});
+</script>
+
+</body>
+</html>
